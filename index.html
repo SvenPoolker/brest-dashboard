@@ -74,10 +74,19 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.4fr);
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  grid-gap: 14px; gap: 14px;
+  grid-template-columns: minmax(0, 0.93fr) minmax(0, 1.27fr) minmax(0, 0.8fr);
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  grid-gap: 12px; gap: 12px;
 }
+/* big tiles span 3 of 6 rows in the first two columns; small tiles span 2 rows in the third */
+.p-clock { grid-column: 1; grid-row: 1 / 4; }
+.p-wx    { grid-column: 2; grid-row: 1 / 4; }
+.p-tram  { grid-column: 1; grid-row: 4 / 7; }
+.p-tide  { grid-column: 2; grid-row: 4 / 7; }
+.p-sea   { grid-column: 3; grid-row: 1 / 3; }
+.p-air   { grid-column: 3; grid-row: 3 / 5; }
+.p-moon  { grid-column: 3; grid-row: 5 / 7; }
+.tile.sm { padding: 13px 16px 14px; border-radius: 18px; }
 .tile {
   background: var(--tile);
   border-radius: 22px;
@@ -120,20 +129,20 @@ body {
 .sunrow {
   flex: none; display: flex; justify-content: center; align-items: center;
   margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
-  font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap;
 }
-.sunrow span { margin: 0 9px; white-space: nowrap; }
+.sunrow span { margin: 0 6px; white-space: nowrap; }
 .sunrow b { color: var(--ink); font-weight: 700; }
 .sunrow svg { width: 18px; height: 18px; vertical-align: -3px; margin-right: 4px; }
 
 /* ---- Weather ---- */
 .wx-now { display: flex; align-items: center; margin-top: 4px; flex: none; }
-.wx-icon { width: 96px; height: 96px; flex: none; margin-right: 10px; margin-left: -6px; }
-.wx-temp { font-family: var(--display); font-weight: 700; font-size: 78px; line-height: 0.9; letter-spacing: -0.03em; margin-right: 18px; }
-.wx-temp sup { font-size: 40px; vertical-align: 26px; margin-left: 2px; }
+.wx-icon { width: 74px; height: 74px; flex: none; margin-right: 6px; margin-left: -6px; }
+.wx-temp { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: 0.9; letter-spacing: -0.03em; margin-right: 14px; }
+.wx-temp sup { font-size: 32px; vertical-align: 20px; margin-left: 1px; }
 .wx-desc { min-width: 0; }
-.wx-label { font-size: 22px; font-weight: 700; }
-.wx-detail { font-size: 15px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+.wx-label { font-size: 19px; font-weight: 700; }
+.wx-detail { font-size: 14px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 .wx-detail b { color: var(--ink); font-weight: 700; }
 .wx-rain { margin-top: auto; font-size: 15px; font-weight: 600; color: var(--sea); padding: 6px 0 8px; flex: none; }
 .hours { display: flex; flex: none; border-top: 1px solid var(--line); padding-top: 10px; }
@@ -144,9 +153,9 @@ body {
 .hour .p { font-size: 12px; color: var(--sea); font-weight: 700; height: 16px; }
 
 /* ---- Tides ---- */
-.tide-now { display: flex; align-items: baseline; margin-top: 4px; flex: none; }
-.tide-h { font-family: var(--display); font-weight: 700; font-size: 40px; letter-spacing: -0.02em; margin-right: 12px; }
-.tide-trend { font-size: 17px; font-weight: 700; color: var(--sea); }
+.tide-now { display: flex; align-items: baseline; margin-top: 4px; flex: none; flex-wrap: wrap; }
+.tide-h { font-family: var(--display); font-weight: 700; font-size: 36px; letter-spacing: -0.02em; margin-right: 10px; }
+.tide-trend { font-size: 15px; font-weight: 700; color: var(--sea); }
 .tide-curve { flex: 1 1 auto; min-height: 0; position: relative; margin: 4px -4px 6px; }
 .tide-curve svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
 .t-area { fill: var(--sea-soft); }
@@ -172,9 +181,9 @@ body {
 .dir + .dir { border-top: 1px solid var(--line); padding-top: 8px; }
 .dir-label { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
 .dep { display: flex; align-items: baseline; padding: 2px 0; }
-.dep .min { font-family: var(--display); font-weight: 700; font-size: 25px; width: 92px; flex: none; font-variant-numeric: tabular-nums; }
+.dep .min { font-family: var(--display); font-weight: 700; font-size: 23px; width: 80px; flex: none; font-variant-numeric: tabular-nums; }
 .dep.next .min { color: var(--accent); }
-.dep .dest { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dep .dest { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dep .at { flex: none; font-size: 14px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 8px; }
 
 .alert {
@@ -184,12 +193,31 @@ body {
 .alert b { display: block; font-size: 14px; color: var(--accent); }
 .alert .more { white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 
+/* ---- Small tiles: sea, air, moon ---- */
+.big { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.big small { font-size: 16px; font-weight: 600; color: var(--muted); font-family: var(--body); letter-spacing: 0; margin-left: 6px; }
+.sm-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.facts { margin-top: 8px; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.facts b { color: var(--ink); font-weight: 700; }
+.lvl { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 13px; font-weight: 700; margin-left: 8px; vertical-align: 6px; color: #fff; }
+.chips { margin-top: 6px; }
+.chip { display: inline-block; border-radius: 999px; padding: 1px 8px; font-size: 12px; font-weight: 700; margin: 2px 4px 0 0; background: var(--line); color: var(--ink); }
+.moon-row { display: flex; align-items: center; }
+.moon-row svg { width: 64px; height: 64px; flex: none; margin-right: 12px; }
+.moon-name { font-size: 17px; font-weight: 700; line-height: 1.2; }
+.moon-pct { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.moon-lit { fill: #f3ead8; }
+.moon-dark { fill: #3b3530; }
+.moon-rim { fill: none; stroke: var(--line); stroke-width: 1.5; }
+
 .muted-msg { color: var(--muted); font-size: 16px; margin: auto 0; text-align: center; }
 
 /* Narrow screens (phone): stack the tiles and let the page scroll */
 @media (max-width: 720px) {
   body { overflow: auto; }
   .board { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .board > .tile { grid-column: auto; grid-row: auto; }
+  .tile.sm { min-height: 170px; }
   .clock-face { height: 240px; flex: none; }
   .tide-curve { height: 150px; flex: none; }
   .wx-temp { font-size: 60px; }
@@ -202,7 +230,7 @@ body {
 <body>
 <main class="board">
 
-  <section class="tile clock-tile" aria-label="Heure">
+  <section class="tile clock-tile p-clock" aria-label="Heure">
     <div class="tile-head"><span class="name">Heure</span><span class="aside">Brest</span></div>
     <div class="clock-face">
       <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -220,24 +248,39 @@ body {
     <div class="sunrow" id="sunrow"><span>Lever et coucher du soleil…</span></div>
   </section>
 
-  <section class="tile" aria-label="Météo">
+  <section class="tile p-wx" aria-label="Météo">
     <div class="tile-head"><span class="name">Météo</span><span class="aside" id="wx-updated"></span></div>
     <div id="wx-body" style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0">
       <p class="muted-msg">Chargement de la météo…</p>
     </div>
   </section>
 
-  <section class="tile" aria-label="Tram">
+  <section class="tile p-tram" aria-label="Tram">
     <div class="tile-head"><span class="name"><span class="line-badge" style="background:#de007e">A</span>Tram</span><span class="aside">Jean Jaurès · horaires prévus</span></div>
     <div class="alert" id="tram-alert" hidden></div>
     <div class="tram" id="tram-body"><p class="muted-msg">Chargement des horaires…</p></div>
   </section>
 
-  <section class="tile" aria-label="Marées">
+  <section class="tile p-tide" aria-label="Marées">
     <div class="tile-head"><span class="name">Marées</span><span class="aside">Port de Brest</span></div>
     <div class="tide-now"><span class="tide-h num" id="tide-h">–</span><span class="tide-trend" id="tide-trend"></span></div>
     <div class="tide-curve"><svg id="tide-svg" viewBox="0 0 600 160" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
     <div class="tide-next" id="tide-next"></div>
+  </section>
+
+  <section class="tile sm p-sea" aria-label="Mer">
+    <div class="tile-head"><span class="name">Mer</span><span class="aside">Iroise, au large</span></div>
+    <div class="sm-body" id="sea-body"><p class="muted-msg">Chargement…</p></div>
+  </section>
+
+  <section class="tile sm p-air" aria-label="Air">
+    <div class="tile-head"><span class="name">Air</span><span class="aside">Brest</span></div>
+    <div class="sm-body" id="air-body"><p class="muted-msg">Chargement…</p></div>
+  </section>
+
+  <section class="tile sm p-moon" aria-label="Lune">
+    <div class="tile-head"><span class="name">Lune</span><span class="aside" id="moon-aside"></span></div>
+    <div class="sm-body" id="moon-body"></div>
   </section>
 
 </main>
@@ -297,6 +340,7 @@ body {
       applyNight(now);
       renderTide(now);
       renderTram(now);
+      if (m % 10 === 0 || !moonDone) renderMoon(now);
     }
   }
 
@@ -519,7 +563,7 @@ body {
     }
     html += '<div class="wx-rain">' + rainMsg + '</div><div class="hours">';
     if (start >= 0) {
-      for (i = start; i < Math.min(start + 7, H.time.length); i++) {
+      for (i = start; i < Math.min(start + 6, H.time.length); i++) {
         var p = H.precipitation_probability[i];
         html += '<div class="hour"><div class="t">' + parseLocal(H.time[i]).getHours() + 'h</div>' +
           icon(H.weather_code[i], H.is_day[i]) +
@@ -684,6 +728,128 @@ body {
     svg.appendChild(svgEl('circle', { 'class': 't-dot', cx: nx, cy: ny, r: 6 }));
   }
 
+  /* ---------- Sea (Open-Meteo Marine, offshore Iroise) ---------- */
+  function loadSea() {
+    var url = 'https://marine-api.open-meteo.com/v1/marine?latitude=48.34&longitude=-4.62' +
+      '&current=wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_period,sea_surface_temperature' +
+      '&hourly=wave_height&timezone=Europe%2FParis&forecast_days=1';
+    fetch(url).then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
+      var c = d.current, max = null, now = new Date(), i;
+      for (i = 0; i < d.hourly.time.length; i++) {
+        var v = d.hourly.wave_height[i];
+        if (v != null && parseLocal(d.hourly.time[i]) >= now && (max == null || v > max)) max = v;
+      }
+      var html = '<div class="big">' + (c.sea_surface_temperature != null ? dec(c.sea_surface_temperature, 1) + '°' : '–') + '<small>dans l’eau</small></div>' +
+        '<div class="facts">Vagues <b>' + (c.wave_height != null ? dec(c.wave_height, 1) + ' m' : '–') + '</b>' +
+        (c.wave_period != null ? ' · ' + Math.round(c.wave_period) + ' s' : '') +
+        (c.wave_direction != null ? ' · ' + windDir(c.wave_direction) : '') + '<br>' +
+        'Houle <b>' + (c.swell_wave_height != null ? dec(c.swell_wave_height, 1) + ' m' : '–') + '</b>' +
+        (c.swell_wave_period != null ? ' · ' + Math.round(c.swell_wave_period) + ' s' : '') +
+        (max != null ? '<br>Max d’ici ce soir <b>' + dec(max, 1) + ' m</b>' : '') + '</div>';
+      $('sea-body').innerHTML = html;
+      setTimeout(loadSea, 30 * 60000);
+    }).catch(function () {
+      $('sea-body').innerHTML = '<p class="muted-msg">Données mer indisponibles.</p>';
+      setTimeout(loadSea, 5 * 60000);
+    });
+  }
+
+  /* ---------- Air quality and pollen (Open-Meteo / CAMS) ---------- */
+  var AQI = [[20, 'Bon', '#3d9a62', '#fff'], [40, 'Correct', '#79a83a', '#fff'], [60, 'Moyen', '#e3b021', '#2a221d'],
+    [80, 'Médiocre', '#e3742c', '#fff'], [100, 'Mauvais', '#cf3b3b', '#fff'], [1e9, 'Très mauvais', '#8a2a64', '#fff']];
+  var POLLEN = [['alder_pollen', 'Aulne'], ['birch_pollen', 'Bouleau'], ['grass_pollen', 'Graminées'],
+    ['mugwort_pollen', 'Armoise'], ['olive_pollen', 'Olivier'], ['ragweed_pollen', 'Ambroisie']];
+  function loadAir() {
+    var url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + LAT + '&longitude=' + LON +
+      '&current=european_aqi,pm2_5,pm10,' + POLLEN.map(function (p) { return p[0]; }).join(',') + '&timezone=Europe%2FParis';
+    fetch(url).then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (d) {
+      var c = d.current, q = c.european_aqi, lvl = AQI[0], i;
+      for (i = 0; i < AQI.length; i++) { if (q <= AQI[i][0]) { lvl = AQI[i]; break; } }
+      var html = '<div class="big">' + Math.round(q) + '<span class="lvl" style="background:' + lvl[2] + ';color:' + lvl[3] + '">' + lvl[1] + '</span></div>' +
+        '<div class="facts">Indice européen<br>PM2,5 <b>' + Math.round(c.pm2_5) + '</b> · PM10 <b>' + Math.round(c.pm10) + '</b> µg/m³</div>';
+      var chips = '';
+      POLLEN.forEach(function (p) {
+        var v = c[p[0]];
+        if (v != null && v >= 1) chips += '<span class="chip">' + p[1] + ' ' + (v < 10 ? 'faible' : (v < 50 ? 'moyen' : 'élevé')) + '</span>';
+      });
+      html += chips ? '<div class="chips">' + chips + '</div>' : '<div class="facts">Pollens : rien à signaler</div>';
+      $('air-body').innerHTML = html;
+      setTimeout(loadAir, 30 * 60000);
+    }).catch(function () {
+      $('air-body').innerHTML = '<p class="muted-msg">Qualité de l’air indisponible.</p>';
+      setTimeout(loadAir, 5 * 60000);
+    });
+  }
+
+  /* ---------- Moon: phase, rise/set, next full/new moon (computed here) ---------- */
+  var moonDone = false;
+  function norm(x) { x %= 360; return x < 0 ? x + 360 : x; }
+  function moonState(ms) {
+    var d = ms / 86400000 + 2440587.5 - 2451545.0, r = DEG;
+    var g = 357.529 + 0.98560028 * d, q = 280.459 + 0.98564736 * d;
+    var sunLon = q + 1.915 * Math.sin(g * r) + 0.020 * Math.sin(2 * g * r);
+    var L = 218.316 + 13.176396 * d, M = 134.963 + 13.064993 * d, F = 93.272 + 13.229350 * d, D = 297.850 + 12.190749 * d;
+    var lon = L + 6.289 * Math.sin(M * r) - 1.274 * Math.sin((M - 2 * D) * r) + 0.658 * Math.sin(2 * D * r)
+      - 0.186 * Math.sin(g * r) - 0.059 * Math.sin((2 * M - 2 * D) * r) - 0.057 * Math.sin((M - 2 * D + g) * r)
+      + 0.053 * Math.sin((M + 2 * D) * r) + 0.046 * Math.sin((2 * D - g) * r) + 0.041 * Math.sin((M - g) * r)
+      - 0.035 * Math.sin(D * r) - 0.031 * Math.sin((M + g) * r);
+    var lat = 5.128 * Math.sin(F * r) + 0.281 * Math.sin((M + F) * r) + 0.278 * Math.sin((M - F) * r)
+      + 0.173 * Math.sin((2 * D - F) * r) + 0.055 * Math.sin((2 * D - M + F) * r);
+    return { d: d, lon: norm(lon), lat: lat, elong: norm(lon - sunLon) };
+  }
+  function moonAlt(ms) {
+    var s = moonState(ms), r = DEG, eps = 23.439 * r, lam = s.lon * r, bet = s.lat * r;
+    var ra = Math.atan2(Math.sin(lam) * Math.cos(eps) - Math.tan(bet) * Math.sin(eps), Math.cos(lam));
+    var dec = Math.asin(Math.sin(bet) * Math.cos(eps) + Math.cos(bet) * Math.sin(eps) * Math.sin(lam));
+    var lst = norm(280.46061837 + 360.98564736629 * s.d + LON) * r;
+    var H = lst - ra, phi = LAT * r;
+    return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / r;
+  }
+  function moonName(e) {
+    if (e < 7 || e >= 353) return 'Nouvelle lune';
+    if (e < 83) return 'Premier croissant';
+    if (e < 97) return 'Premier quartier';
+    if (e < 173) return 'Gibbeuse croissante';
+    if (e < 187) return 'Pleine lune';
+    if (e < 263) return 'Gibbeuse décroissante';
+    if (e < 277) return 'Dernier quartier';
+    return 'Dernier croissant';
+  }
+  var DAYS_SHORT = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  function renderMoon(now) {
+    moonDone = true;
+    var ms = now.getTime(), st = moonState(ms), k = (1 - Math.cos(st.elong * DEG)) / 2, waxing = st.elong < 180;
+    // rise / set today
+    var day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), H0 = 0.13, STEP = 600000;
+    var rise = null, set = null, prev = moonAlt(day0) - H0, t, cur;
+    for (t = day0 + STEP; t <= day0 + 86400000; t += STEP) {
+      cur = moonAlt(t) - H0;
+      if (prev < 0 && cur >= 0 && !rise) rise = t - STEP * cur / (cur - prev);
+      if (prev >= 0 && cur < 0 && !set) set = t - STEP * cur / (cur - prev);
+      prev = cur;
+    }
+    // next full and new moon
+    var nextFull = null, nextNew = null, pe = st.elong, e;
+    for (t = ms + 3600000; t < ms + 31 * 86400000 && !(nextFull && nextNew); t += 3600000) {
+      e = moonState(t).elong;
+      if (!nextFull && pe < 180 && e >= 180) nextFull = t;
+      if (!nextNew && e < pe) nextNew = t;
+      pe = e;
+    }
+    var rx = (28 * Math.abs(1 - 2 * k)).toFixed(2);
+    var lit = '<path class="moon-lit" d="M32 4A28 28 0 0 1 32 60A' + rx + ' 28 0 0 ' + (k < 0.5 ? 0 : 1) + ' 32 4Z"' +
+      (waxing ? '' : ' transform="translate(64 0) scale(-1 1)"') + '/>';
+    var svg = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle class="moon-dark" cx="32" cy="32" r="28"/>' + lit +
+      '<circle class="moon-rim" cx="32" cy="32" r="28"/></svg>';
+    function dayLabel(x) { var dd = new Date(x); return DAYS_SHORT[dd.getDay()] + ' ' + dd.getDate(); }
+    var upcoming = (nextFull && (!nextNew || nextFull < nextNew)) ? ['Pleine lune', nextFull] : ['Nouvelle lune', nextNew];
+    $('moon-body').innerHTML = '<div class="moon-row">' + svg + '<div><div class="moon-name">' + moonName(st.elong) + '</div>' +
+      '<div class="moon-pct">' + Math.round(k * 100) + ' % éclairée</div></div></div>' +
+      '<div class="facts">' + (rise ? 'Lever <b>' + hh(new Date(rise)) + '</b>' : 'Pas de lever') + ' · ' +
+      (set ? 'Coucher <b>' + hh(new Date(set)) + '</b>' : 'pas de coucher') + '<br>' +
+      (upcoming[1] ? upcoming[0] + ' <b>' + dayLabel(upcoming[1]) + '</b>' : '') + '</div>';
+  }
+
   /* ---------- Keep the screen awake where supported (iPadOS 16.4+) ---------- */
   function wake() {
     try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
@@ -698,6 +864,8 @@ body {
   setInterval(loadBibus, 6 * 3600 * 1000);
   loadAlerts();
   setInterval(loadAlerts, 5 * 60 * 1000);
+  loadSea();
+  loadAir();
   wake();
   // reload twice a day to pick up dashboard updates and clear any stuck state
   setTimeout(function () { location.reload(); }, 12 * 3600 * 1000);
