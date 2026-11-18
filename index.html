@@ -177,6 +177,13 @@ body {
 .dep .dest { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dep .at { flex: none; font-size: 14px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 8px; }
 
+.alert {
+  flex: none; margin-top: 8px; padding: 7px 10px; border-radius: 10px;
+  background: var(--accent-soft); color: var(--ink); font-size: 13px; line-height: 1.35;
+}
+.alert b { display: block; font-size: 14px; color: var(--accent); }
+.alert .more { white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+
 .muted-msg { color: var(--muted); font-size: 16px; margin: auto 0; text-align: center; }
 
 /* Narrow screens (phone): stack the tiles and let the page scroll */
@@ -222,6 +229,7 @@ body {
 
   <section class="tile" aria-label="Tram">
     <div class="tile-head"><span class="name"><span class="line-badge" style="background:#de007e">A</span>Tram</span><span class="aside">Jean Jaurès · horaires prévus</span></div>
+    <div class="alert" id="tram-alert" hidden></div>
     <div class="tram" id="tram-body"><p class="muted-msg">Chargement des horaires…</p></div>
   </section>
 
@@ -301,6 +309,87 @@ body {
     }).then(function (d) { bibus = d; renderTram(new Date()); })
       .catch(function () { if (!bibus) $('tram-body').innerHTML = '<p class="muted-msg">Horaires indisponibles pour le moment.</p>'; });
   }
+  /* ---------- Bibus service alerts (live GTFS-RT, decoded by hand) ---------- */
+  var ALERTS_URL = 'https://proxy.transport.data.gouv.fr/resource/bibus-brest-gtfs-rt-alerts';
+  var ALERT_ROUTE = 'A', ALERT_STOP = 'JJAUR';
+  function pbFields(b, s, e) { // returns [{f, w, v}] ; v = number (varint) or [start, end] (bytes)
+    var out = [], i = s;
+    while (i < e) {
+      var key = 0, mul = 1, x, val, len;
+      do { x = b[i++]; key += (x & 127) * mul; mul *= 128; } while (x >= 128);
+      var f = Math.floor(key / 8), w = key % 8;
+      if (w === 0) { val = 0; mul = 1; do { x = b[i++]; val += (x & 127) * mul; mul *= 128; } while (x >= 128); }
+      else if (w === 2) {
+        len = 0; mul = 1; do { x = b[i++]; len += (x & 127) * mul; mul *= 128; } while (x >= 128);
+        val = [i, i + len]; i += len;
+      }
+      else if (w === 1) { i += 8; continue; }
+      else if (w === 5) { i += 4; continue; }
+      else break;
+      out.push({ f: f, w: w, v: val });
+    }
+    return out;
+  }
+  var utf8 = window.TextDecoder ? new TextDecoder('utf-8') : null;
+  function pbStr(b, r) {
+    var bytes = b.subarray(r[0], r[1]);
+    if (utf8) return utf8.decode(bytes);
+    var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    try { return decodeURIComponent(escape(s)); } catch (e) { return s; }
+  }
+  function pbText(b, r) { // TranslatedString -> first translation text
+    var t = pbFields(b, r[0], r[1]).filter(function (x) { return x.f === 1 && x.w === 2; })[0];
+    if (!t) return '';
+    var txt = pbFields(b, t.v[0], t.v[1]).filter(function (x) { return x.f === 1 && x.w === 2; })[0];
+    return txt ? pbStr(b, txt.v) : '';
+  }
+  function parseAlerts(b) {
+    var nowS = Date.now() / 1000, found = [];
+    pbFields(b, 0, b.length).forEach(function (ent) {
+      if (ent.f !== 2 || ent.w !== 2) return;
+      pbFields(b, ent.v[0], ent.v[1]).forEach(function (a) {
+        if (a.f !== 5 || a.w !== 2) return;
+        var periods = [], match = false, head = '', desc = '';
+        pbFields(b, a.v[0], a.v[1]).forEach(function (x) {
+          if (x.w !== 2) return;
+          if (x.f === 1) {
+            var p = { s: 0, e: Infinity };
+            pbFields(b, x.v[0], x.v[1]).forEach(function (y) { if (y.f === 1) p.s = y.v; if (y.f === 2) p.e = y.v; });
+            periods.push(p);
+          } else if (x.f === 5) {
+            pbFields(b, x.v[0], x.v[1]).forEach(function (y) {
+              if (y.w !== 2) return;
+              var val = pbStr(b, y.v);
+              if ((y.f === 2 && val === ALERT_ROUTE) || (y.f === 5 && val.indexOf(ALERT_STOP) === 0)) match = true;
+            });
+          } else if (x.f === 10) head = pbText(b, x.v);
+          else if (x.f === 11) desc = pbText(b, x.v);
+        });
+        var active = !periods.length || periods.some(function (p) { return p.s <= nowS && nowS <= p.e; });
+        if (match && active) found.push({ head: head, desc: desc });
+      });
+    });
+    return found;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function loadAlerts() {
+    fetch(ALERTS_URL, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.arrayBuffer();
+    }).then(function (buf) {
+      var list = parseAlerts(new Uint8Array(buf)), box = $('tram-alert');
+      if (!list.length) { box.hidden = true; }
+      else {
+        var a = list[0];
+        var lines = a.desc.split('\n').filter(function (l) { return l.trim() && l.trim() !== a.head.trim(); });
+        box.innerHTML = '<b>' + esc(a.head) + (list.length > 1 ? ' (+' + (list.length - 1) + ')' : '') + '</b>' +
+          (lines.length ? '<div class="more">' + esc(lines.join('\n')) + '</div>' : '');
+        box.hidden = false;
+      }
+      renderTram(new Date());
+    }).catch(function () { /* keep the last state; try again later */ });
+  }
+
   function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function renderTram(now) {
     if (!bibus) return;
@@ -324,9 +413,9 @@ body {
         labels[rows[i][3]][bibus.headsigns[rows[i][2]]] = 1;
       }
     }
-    var html = '', order = [1, 0], j;
+    var html = '', order = [1, 0], j, perDir = $('tram-alert').hidden ? 3 : 2;
     for (j = 0; j < order.length; j++) {
-      var dir = order[j], list = deps.filter(function (x) { return x.dir === dir; }).slice(0, 3);
+      var dir = order[j], list = deps.filter(function (x) { return x.dir === dir; }).slice(0, perDir);
       if (!labels[dir]) continue;
       html += '<div class="dir"><div class="dir-label">Vers ' + Object.keys(labels[dir]).sort().join(' / ') + '</div>';
       if (!list.length) html += '<div class="dep"><span class="dest" style="color:var(--muted)">Pas de tram dans les prochaines heures</span></div>';
@@ -607,6 +696,8 @@ body {
   loadWeather();
   loadBibus();
   setInterval(loadBibus, 6 * 3600 * 1000);
+  loadAlerts();
+  setInterval(loadAlerts, 5 * 60 * 1000);
   wake();
   // reload twice a day to pick up dashboard updates and clear any stuck state
   setTimeout(function () { location.reload(); }, 12 * 3600 * 1000);
