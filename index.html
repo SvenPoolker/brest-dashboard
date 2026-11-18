@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tableau Brest</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Maison">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Manrope:wght@500;600;700&display=swap">
+<style>
+/* Layout: wall display for iPad mini 4 landscape (1024x768). Tall clock tile on the left,
+   weather and tides stacked on the right. Warm paper ground, white tiles, orange accent. */
+:root {
+  --bg: #f2ece4;
+  --grid: rgba(120, 90, 60, 0.07);
+  --tile: #fffcf8;
+  --ink: #2a221d;
+  --muted: #8b7d71;
+  --line: #ebe1d5;
+  --accent: #e5652a;
+  --accent-soft: #fbe3d5;
+  --sea: #2c7a86;
+  --sea-soft: rgba(44, 122, 134, 0.16);
+  --sun: #f0a531;
+  --shadow: 0 1px 2px rgba(80, 50, 20, 0.06), 0 8px 24px rgba(80, 50, 20, 0.07);
+  --display: "Bricolage Grotesque", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  --body: "Manrope", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+/* Night mode (set by script between NIGHT_START and NIGHT_END) and dark OS setting */
+:root.night {
+  --bg: #121010; --grid: rgba(255, 220, 190, 0.03); --tile: #1b1816; --ink: #d9cfc5;
+  --muted: #7d7067; --line: #2c2723; --accent: #d9733d; --accent-soft: #3a2519;
+  --sea: #5ea4ae; --sea-soft: rgba(94, 164, 174, 0.16); --sun: #c98f35;
+  --shadow: none; color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121010; --grid: rgba(255, 220, 190, 0.03); --tile: #1b1816; --ink: #d9cfc5;
+    --muted: #7d7067; --line: #2c2723; --accent: #d9733d; --accent-soft: #3a2519;
+    --sea: #5ea4ae; --sea-soft: rgba(94, 164, 174, 0.16); --sun: #c98f35;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121010; --grid: rgba(255, 220, 190, 0.03); --tile: #1b1816; --ink: #d9cfc5;
+  --muted: #7d7067; --line: #2c2723; --accent: #d9733d; --accent-soft: #3a2519;
+  --sea: #5ea4ae; --sea-soft: rgba(94, 164, 174, 0.16); --sun: #c98f35;
+  --shadow: none; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none; user-select: none;
+  overflow: hidden;
+  transition: background-color 1.5s;
+}
+.board {
+  height: 100%;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.4fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-gap: 14px; gap: 14px;
+}
+.tile {
+  background: var(--tile);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 16px 20px 18px;
+  display: flex; flex-direction: column;
+  min-height: 0; min-width: 0;
+  position: relative; overflow: hidden;
+  transition: background-color 1.5s;
+}
+.tile-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700;
+  flex: none;
+}
+.tile-head .name { color: var(--accent); }
+.tile-head .aside { text-transform: none; letter-spacing: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---- Clock ---- */
+.clock-tile { grid-row: 1 / span 2; }
+.clock-face { flex: 1 1 auto; min-height: 0; position: relative; margin: 6px 0 4px; }
+.clock-face svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.face-bg { fill: var(--bg); }
+.tick { stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; opacity: 0.55; }
+.tick.h { stroke: var(--ink); stroke-width: 3; opacity: 0.9; }
+.hand-h, .hand-m { stroke: var(--ink); stroke-linecap: round; }
+.hand-h { stroke-width: 7; }
+.hand-m { stroke-width: 4.5; }
+.hand-s { stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; }
+.hub { fill: var(--accent); }
+.hub-in { fill: var(--tile); }
+.digital {
+  flex: none; text-align: center;
+  font-family: var(--display); font-weight: 700; font-size: 84px; line-height: 1;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.date { flex: none; text-align: center; font-size: 20px; font-weight: 600; margin-top: 6px; }
+.date .weekday { color: var(--accent); }
+.sunrow {
+  flex: none; display: flex; justify-content: center; align-items: center;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+  font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.sunrow span { margin: 0 9px; white-space: nowrap; }
+.sunrow b { color: var(--ink); font-weight: 700; }
+.sunrow svg { width: 18px; height: 18px; vertical-align: -3px; margin-right: 4px; }
+
+/* ---- Weather ---- */
+.wx-now { display: flex; align-items: center; margin-top: 4px; flex: none; }
+.wx-icon { width: 96px; height: 96px; flex: none; margin-right: 10px; margin-left: -6px; }
+.wx-temp { font-family: var(--display); font-weight: 700; font-size: 78px; line-height: 0.9; letter-spacing: -0.03em; margin-right: 18px; }
+.wx-temp sup { font-size: 40px; vertical-align: 26px; margin-left: 2px; }
+.wx-desc { min-width: 0; }
+.wx-label { font-size: 22px; font-weight: 700; }
+.wx-detail { font-size: 15px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+.wx-detail b { color: var(--ink); font-weight: 700; }
+.wx-rain { margin-top: auto; font-size: 15px; font-weight: 600; color: var(--sea); padding: 6px 0 8px; flex: none; }
+.hours { display: flex; flex: none; border-top: 1px solid var(--line); padding-top: 10px; }
+.hour { flex: 1 1 0; text-align: center; min-width: 0; }
+.hour .t { font-size: 13px; color: var(--muted); font-weight: 600; }
+.hour svg { width: 34px; height: 34px; display: block; margin: 2px auto 0; }
+.hour .v { font-size: 19px; font-weight: 700; font-family: var(--display); }
+.hour .p { font-size: 12px; color: var(--sea); font-weight: 700; height: 16px; }
+
+/* ---- Tides ---- */
+.tide-now { display: flex; align-items: baseline; margin-top: 4px; flex: none; }
+.tide-h { font-family: var(--display); font-weight: 700; font-size: 40px; letter-spacing: -0.02em; margin-right: 12px; }
+.tide-trend { font-size: 17px; font-weight: 700; color: var(--sea); }
+.tide-curve { flex: 1 1 auto; min-height: 0; position: relative; margin: 4px -4px 6px; }
+.tide-curve svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; }
+.t-area { fill: var(--sea-soft); }
+.t-line { fill: none; stroke: var(--sea); stroke-width: 2.5; stroke-linejoin: round; }
+.t-now { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.t-dot { fill: var(--accent); stroke: var(--tile); stroke-width: 2.5; }
+.t-ext { fill: var(--sea); }
+.t-lab { fill: var(--ink); font-size: 13px; font-weight: 700; font-family: var(--body); }
+.t-axis { fill: var(--muted); font-size: 11px; font-weight: 600; font-family: var(--body); }
+.t-base { stroke: var(--line); stroke-width: 1; }
+.tide-next { display: flex; flex: none; border-top: 1px solid var(--line); padding-top: 10px; }
+.tide-next > div { flex: 1 1 0; min-width: 0; }
+.tide-next > div + div { border-left: 1px solid var(--line); padding-left: 16px; }
+.tn-k { font-size: 13px; color: var(--muted); font-weight: 600; }
+.tn-v { font-size: 19px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tn-v small { font-size: 14px; color: var(--muted); font-weight: 600; margin-left: 6px; }
+.coef { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 9px; font-size: 13px; font-weight: 700; margin-left: 6px; vertical-align: 2px; }
+
+.muted-msg { color: var(--muted); font-size: 16px; margin: auto 0; text-align: center; }
+
+/* Narrow screens (phone): stack the tiles and let the page scroll */
+@media (max-width: 720px) {
+  body { overflow: auto; }
+  .board { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .clock-tile { grid-row: auto; }
+  .clock-face { height: 260px; flex: none; }
+  .tide-curve { height: 150px; flex: none; }
+  .digital { font-size: 52px; }
+  .wx-temp { font-size: 60px; }
+  .wx-icon { width: 72px; height: 72px; }
+  .hour:nth-child(n+6) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="board">
+
+  <section class="tile clock-tile" aria-label="Heure">
+    <div class="tile-head"><span class="name">Heure</span><span class="aside">Brest</span></div>
+    <div class="clock-face">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="face-bg" cx="100" cy="100" r="96"></circle>
+        <g id="ticks"></g>
+        <line id="hh" class="hand-h" x1="100" y1="100" x2="100" y2="54"></line>
+        <line id="mh" class="hand-m" x1="100" y1="100" x2="100" y2="24"></line>
+        <line id="sh" class="hand-s" x1="100" y1="116" x2="100" y2="16"></line>
+        <circle class="hub" cx="100" cy="100" r="5.5"></circle>
+        <circle class="hub-in" cx="100" cy="100" r="2"></circle>
+      </svg>
+    </div>
+    <div class="digital" id="digital">--:--</div>
+    <div class="date" id="date"></div>
+    <div class="sunrow" id="sunrow"><span>Lever et coucher du soleil…</span></div>
+  </section>
+
+  <section class="tile" aria-label="Météo">
+    <div class="tile-head"><span class="name">Météo</span><span class="aside" id="wx-updated"></span></div>
+    <div id="wx-body" style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0">
+      <p class="muted-msg">Chargement de la météo…</p>
+    </div>
+  </section>
+
+  <section class="tile" aria-label="Marées">
+    <div class="tile-head"><span class="name">Marées</span><span class="aside">Port de Brest</span></div>
+    <div class="tide-now"><span class="tide-h num" id="tide-h">–</span><span class="tide-trend" id="tide-trend"></span></div>
+    <div class="tide-curve"><svg id="tide-svg" viewBox="0 0 600 160" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg></div>
+    <div class="tide-next" id="tide-next"></div>
+  </section>
+
+</main>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Settings ---------- */
+  var LAT = 48.39, LON = -4.49;         // Brest
+  var NIGHT_START = 22, NIGHT_END = 7;  // dim theme between these hours
+  var WX_REFRESH_MIN = 15;
+
+  var DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function hh(d) { return d.getHours() + 'h' + pad(d.getMinutes()); }
+  function dec(x, n) { return x.toFixed(n).replace('.', ','); }
+  function $(id) { return document.getElementById(id); }
+  var NS = 'http://www.w3.org/2000/svg';
+
+  /* ---------- Night mode ---------- */
+  function applyNight(now) {
+    var h = now.getHours();
+    var night = (NIGHT_START > NIGHT_END) ? (h >= NIGHT_START || h < NIGHT_END) : (h >= NIGHT_START && h < NIGHT_END);
+    document.documentElement.classList.toggle('night', night);
+  }
+
+  /* ---------- Clock ---------- */
+  (function buildTicks() {
+    var g = $('ticks'), i, a, r1, line;
+    for (i = 0; i < 60; i++) {
+      a = i * Math.PI / 30;
+      r1 = (i % 5 === 0) ? 78 : 84;
+      line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', 100 + r1 * Math.sin(a));
+      line.setAttribute('y1', 100 - r1 * Math.cos(a));
+      line.setAttribute('x2', 100 + 90 * Math.sin(a));
+      line.setAttribute('y2', 100 - 90 * Math.cos(a));
+      line.setAttribute('class', i % 5 === 0 ? 'tick h' : 'tick');
+      g.appendChild(line);
+    }
+  })();
+  function rot(el, deg) { el.setAttribute('transform', 'rotate(' + deg.toFixed(2) + ' 100 100)'); }
+  var lastMinute = -1;
+  function tickClock() {
+    var now = new Date();
+    var s = now.getSeconds(), m = now.getMinutes(), h = now.getHours() % 12;
+    rot($('sh'), s * 6);
+    rot($('mh'), m * 6 + s * 0.1);
+    rot($('hh'), h * 30 + m * 0.5);
+    if (m !== lastMinute) {
+      lastMinute = m;
+      $('digital').textContent = hm(now);
+      $('date').innerHTML = '<span class="weekday">' + DAYS[now.getDay()].charAt(0).toUpperCase() + DAYS[now.getDay()].slice(1) +
+        '</span> ' + now.getDate() + (now.getDate() === 1 ? 'er' : '') + ' ' + MONTHS[now.getMonth()];
+      applyNight(now);
+      renderTide(now);
+    }
+  }
+
+  /* ---------- Weather icons ---------- */
+  var CLOUD = 'M19 50h28a11 11 0 0 0 1.5-21.9A15 15 0 0 0 20 25.5 12.3 12.3 0 0 0 19 50z';
+  function sunSvg(cx, cy, r) {
+    var s = '<g stroke="var(--sun)" stroke-width="3.2" stroke-linecap="round">', i, a;
+    for (i = 0; i < 8; i++) {
+      a = i * Math.PI / 4;
+      s += '<line x1="' + (cx + (r + 5) * Math.cos(a)).toFixed(1) + '" y1="' + (cy + (r + 5) * Math.sin(a)).toFixed(1) +
+        '" x2="' + (cx + (r + 10) * Math.cos(a)).toFixed(1) + '" y2="' + (cy + (r + 10) * Math.sin(a)).toFixed(1) + '"/>';
+    }
+    return s + '</g><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="var(--sun)"/>';
+  }
+  function moonSvg(cx, cy, r) {
+    return '<path d="M' + (cx + r * 0.3) + ' ' + (cy - r) + 'a' + r + ' ' + r + ' 0 1 0 ' + (r * 0.7) + ' ' + (r * 1.55) +
+      'A' + (r * 0.85) + ' ' + (r * 0.85) + ' 0 0 1 ' + (cx + r * 0.3) + ' ' + (cy - r) + 'z" fill="var(--muted)"/>';
+  }
+  function kind(code) {
+    if (code <= 1) return 'clear';
+    if (code === 2) return 'partly';
+    if (code === 3) return 'cloud';
+    if (code === 45 || code === 48) return 'fog';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+    if (code >= 95) return 'storm';
+    return 'rain';
+  }
+  function icon(code, isDay) {
+    var k = kind(code), s = '<svg viewBox="0 0 64 64" aria-hidden="true">';
+    var cloud = function (dx, dy, op) {
+      return '<path d="' + CLOUD + '" transform="translate(' + (dx || 0) + ' ' + (dy || 0) + ')" fill="var(--tile)" stroke="var(--muted)" stroke-width="3" stroke-linejoin="round"' + (op ? ' opacity="' + op + '"' : '') + '/>';
+    };
+    if (k === 'clear') s += isDay ? sunSvg(32, 32, 12) : moonSvg(30, 32, 15);
+    else if (k === 'partly') s += (isDay ? sunSvg(24, 22, 9) : moonSvg(22, 22, 11)) + cloud(4, 8);
+    else if (k === 'cloud') s += cloud(-6, -6, 0.6) + cloud(2, 4);
+    else if (k === 'fog') s += cloud(0, -4) + '<g stroke="var(--muted)" stroke-width="3" stroke-linecap="round"><line x1="14" y1="54" x2="50" y2="54"/><line x1="20" y1="60" x2="44" y2="60"/></g>';
+    else if (k === 'snow') s += cloud(0, -6) + '<g fill="var(--sea)"><circle cx="22" cy="54" r="2.6"/><circle cx="32" cy="59" r="2.6"/><circle cx="42" cy="54" r="2.6"/></g>';
+    else if (k === 'storm') s += cloud(0, -6) + '<path d="M34 46l-7 10h7l-4 8 10-12h-7l4-6z" fill="var(--sun)"/>';
+    else s += cloud(0, -6) + '<g stroke="var(--sea)" stroke-width="3" stroke-linecap="round"><line x1="22" y1="52" x2="19" y2="59"/><line x1="32" y1="52" x2="29" y2="59"/><line x1="42" y1="52" x2="39" y2="59"/></g>';
+    return s + '</svg>';
+  }
+  var LABELS = { 0: 'Ciel dégagé', 1: 'Plutôt dégagé', 2: 'Éclaircies', 3: 'Couvert', 45: 'Brouillard', 48: 'Brouillard givrant',
+    51: 'Bruine légère', 53: 'Bruine', 55: 'Bruine dense', 56: 'Bruine verglaçante', 57: 'Bruine verglaçante',
+    61: 'Pluie faible', 63: 'Pluie', 65: 'Forte pluie', 66: 'Pluie verglaçante', 67: 'Pluie verglaçante',
+    71: 'Neige faible', 73: 'Neige', 75: 'Forte neige', 77: 'Grains de neige', 80: 'Averses', 81: 'Averses',
+    82: 'Fortes averses', 85: 'Averses de neige', 86: 'Averses de neige', 95: 'Orage', 96: 'Orage et grêle', 99: 'Orage et grêle' };
+  function windDir(deg) { return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(deg / 45) % 8]; }
+  function parseLocal(s) { // "2026-11-18T08:24" in Europe/Paris
+    var p = s.split(/[-T:]/);
+    return new Date(+p[0], +p[1] - 1, +p[2], +p[3], +p[4]);
+  }
+
+  /* ---------- Weather (Open-Meteo, no key) ---------- */
+  var SUN_ICON = '<svg viewBox="0 0 64 64">' + sunSvg(32, 34, 10) + '</svg>';
+  function loadWeather() {
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LON +
+      '&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
+      '&hourly=temperature_2m,weather_code,precipitation_probability,is_day' +
+      '&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min' +
+      '&timezone=Europe%2FParis&forecast_days=2';
+    fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(renderWeather).catch(function () {
+      if (!$('wx-body').getAttribute('data-ok')) {
+        $('wx-body').innerHTML = '<p class="muted-msg">Météo indisponible pour le moment.<br>Nouvel essai dans quelques minutes.</p>';
+      }
+      setTimeout(loadWeather, 5 * 60 * 1000);
+    });
+  }
+  function renderWeather(d) {
+    var c = d.current, now = new Date();
+    var html = '<div class="wx-now">' +
+      '<div class="wx-icon">' + icon(c.weather_code, c.is_day) + '</div>' +
+      '<div class="wx-temp num">' + Math.round(c.temperature_2m) + '<sup>°</sup></div>' +
+      '<div class="wx-desc"><div class="wx-label">' + (LABELS[c.weather_code] || '') + '</div>' +
+      '<div class="wx-detail">Ressenti <b>' + Math.round(c.apparent_temperature) + '°</b> · ' +
+      'min <b>' + Math.round(d.daily.temperature_2m_min[0]) + '°</b> max <b>' + Math.round(d.daily.temperature_2m_max[0]) + '°</b><br>' +
+      'Vent <b>' + Math.round(c.wind_speed_10m) + ' km/h ' + windDir(c.wind_direction_10m) + '</b>, rafales ' + Math.round(c.wind_gusts_10m) + ' km/h</div>' +
+      '</div></div>';
+
+    // hourly: from the next full hour
+    var H = d.hourly, start = -1, i;
+    for (i = 0; i < H.time.length; i++) { if (parseLocal(H.time[i]) > now) { start = i; break; } }
+    var rainMsg = '';
+    if (start >= 0) {
+      for (i = start; i < Math.min(start + 12, H.time.length); i++) {
+        if (H.precipitation_probability[i] >= 50) { rainMsg = 'Pluie probable vers ' + parseLocal(H.time[i]).getHours() + 'h (' + H.precipitation_probability[i] + ' %)'; break; }
+      }
+      if (!rainMsg) rainMsg = 'Pas de pluie prévue d’ici ' + parseLocal(H.time[Math.min(start + 11, H.time.length - 1)]).getHours() + 'h';
+    }
+    html += '<div class="wx-rain">' + rainMsg + '</div><div class="hours">';
+    if (start >= 0) {
+      for (i = start; i < Math.min(start + 7, H.time.length); i++) {
+        var p = H.precipitation_probability[i];
+        html += '<div class="hour"><div class="t">' + parseLocal(H.time[i]).getHours() + 'h</div>' +
+          icon(H.weather_code[i], H.is_day[i]) +
+          '<div class="v num">' + Math.round(H.temperature_2m[i]) + '°</div>' +
+          '<div class="p">' + (p >= 20 ? p + ' %' : '') + '</div></div>';
+      }
+    }
+    html += '</div>';
+    var body = $('wx-body');
+    body.innerHTML = html;
+    body.setAttribute('data-ok', '1');
+    $('wx-updated').textContent = 'mis à jour ' + hh(now);
+
+    // sunrise / sunset in the clock tile
+    var rise = parseLocal(d.daily.sunrise[0]), set = parseLocal(d.daily.sunset[0]);
+    var len = Math.round((set - rise) / 60000);
+    $('sunrow').innerHTML = '<span>' + SUN_ICON + 'Lever <b>' + hm(rise) + '</b></span>' +
+      '<span>Coucher <b>' + hm(set) + '</b></span>' +
+      '<span>Jour <b>' + Math.floor(len / 60) + ' h ' + pad(len % 60) + '</b></span>';
+
+    setTimeout(loadWeather, WX_REFRESH_MIN * 60 * 1000);
+  }
+
+  /* ---------- Tides: harmonic prediction for Brest ----------
+     Constants fitted on 2019-2026 hourly sea level (UHSLC station 822, Brest),
+     heights above chart datum, checked against SHOM-based tables (±10 min, ±5 cm).
+     Approximate: not for navigation. */
+  var Z0 = 4.0858;
+  var TC = [
+    ['M2',[2,0,0,0,0,0],'M2',-0.5959,1.96066],['S2',[2,2,-2,0,0,0],'1',-0.63056,0.41206],
+    ['N2',[2,-1,0,1,0,0],'M2',0.00991,0.4173],['K2',[2,2,0,0,0,0],'K2',-0.17528,0.12333],
+    ['2N2',[2,-2,0,2,0,0],'M2',0.01795,0.05416],['MU2',[2,-2,2,0,0,0],'M2',-0.0199,0.08663],
+    ['NU2',[2,-1,2,-1,0,0],'M2',0.00723,0.0769],['L2',[2,1,0,-1,0,0],'M2',0.00975,-0.06274],
+    ['T2',[2,2,-3,0,0,1],'1',-0.03161,0.02734],['LAM2',[2,1,-2,1,0,0],'M2',-0.00848,-0.02564],
+    ['2SM2',[2,4,-4,0,0,0],'M2',0.01214,-0.01333],['K1',[1,1,0,0,0,0],'K1',-0.06195,0.01626],
+    ['O1',[1,-1,0,0,0,0],'O1',-0.03474,-0.05476],['P1',[1,1,-2,0,0,0],'1',0.01998,-0.00993],
+    ['Q1',[1,-2,0,1,0,0],'O1',-0.02082,-0.00403],['M4',[4,0,0,0,0,0],'M2^2',-0.01187,0.05716],
+    ['MS4',[4,2,-2,0,0,0],'M2',-0.0353,0.0027],['MN4',[4,-1,0,1,0,0],'M2^2',0.01165,0.01773],
+    ['S4',[4,4,-4,0,0,0],'1',-0.00084,-0.00178],['M6',[6,0,0,0,0,0],'M2^3',0.03121,-0.0054],
+    ['2MS6',[6,2,-2,0,0,0],'M2^2',0.00897,0.01436],['2MN6',[6,-1,0,1,0,0],'M2^3',0.0156,-0.01282],
+    ['MSN6',[6,1,-2,1,0,0],'M2^2',0.00361,0.00234],['M3',[3,0,0,0,0,0],'M3',0.01911,0.00424],
+    ['MK3',[3,1,0,0,0,0],'MK',0.00197,0.00057],['MO3',[3,-1,0,0,0,0],'MO',0.00147,0.00008],
+    ['M8',[8,0,0,0,0,0],'M2^4',-0.00097,-0.002],['MSf',[0,2,-2,0,0,0],'M2',0.00082,0.00488],
+    ['Mm',[0,1,0,-1,0,0],'1',0.00282,-0.01339],['Sa',[0,0,1,0,0,0],'1',-0.02067,-0.06372],
+    ['Ssa',[0,0,2,0,0,0],'1',-0.00605,0.02873]
+  ];
+  var DEG = Math.PI / 180;
+  function tideAt(ms) {
+    var th = ms / 3600000;
+    var T = (th / 24 + 2440587.5 - 2451545.0) / 36525;
+    var s = 218.3165 + 481267.8813 * T, h = 280.4661 + 36000.7698 * T, p = 83.3535 + 4069.0137 * T;
+    var N = 125.0445 - 1934.1363 * T, p1 = 282.9384 + 1.7195 * T;
+    var ut = th % 24, tau = 180 + 15 * ut + h - s;
+    var args = [tau, s, h, p, -N, p1];
+    var n = N * DEG, cn = Math.cos(n), c2 = Math.cos(2 * n), sn = Math.sin(n), s2 = Math.sin(2 * n);
+    var fM2 = 1.0004 - 0.0373 * cn + 0.0002 * c2, uM2 = -2.14 * sn;
+    var fK1 = 1.0060 + 0.1150 * cn - 0.0088 * c2, uK1 = -8.86 * sn + 0.68 * s2;
+    var fO1 = 1.0089 + 0.1871 * cn - 0.0147 * c2, uO1 = 10.80 * sn - 1.34 * s2;
+    var fK2 = 1.0241 + 0.2863 * cn + 0.0083 * c2, uK2 = -17.74 * sn + 0.68 * s2;
+    var NOD = { '1': [1, 0], 'M2': [fM2, uM2], 'K1': [fK1, uK1], 'O1': [fO1, uO1], 'K2': [fK2, uK2],
+      'M2^2': [fM2 * fM2, 2 * uM2], 'M2^3': [fM2 * fM2 * fM2, 3 * uM2], 'M2^4': [Math.pow(fM2, 4), 4 * uM2],
+      'M3': [Math.pow(fM2, 1.5), 1.5 * uM2], 'MK': [fM2 * fK1, uM2 + uK1], 'MO': [fM2 * fO1, uM2 + uO1] };
+    var z = Z0, i, j, c, V, fu, a;
+    for (i = 0; i < TC.length; i++) {
+      c = TC[i]; V = 0;
+      for (j = 0; j < 6; j++) V += c[1][j] * args[j];
+      fu = NOD[c[2]]; a = (V + fu[1]) * DEG;
+      z += fu[0] * (c[3] * Math.cos(a) + c[4] * Math.sin(a));
+    }
+    return z;
+  }
+  function tideExtremes(t0, t1) {
+    var step = 6 * 60000, out = [], t, a, b, c, den, dt, tt;
+    a = tideAt(t0 - step); b = tideAt(t0);
+    for (t = t0; t <= t1; t += step) {
+      c = tideAt(t + step);
+      if ((b > a && b >= c) || (b < a && b <= c)) {
+        den = a - 2 * b + c;
+        dt = den ? 0.5 * step * (a - c) / den : 0;
+        tt = t + dt;
+        out.push({ t: tt, h: tideAt(tt), high: b > a });
+      }
+      a = b; b = c;
+    }
+    return out;
+  }
+  function coefFor(ext, i) { // French tide coefficient, from the range around a high water
+    var lows = [], k;
+    for (k = i - 1; k >= 0; k--) { if (!ext[k].high) { lows.push(ext[k].h); break; } }
+    for (k = i + 1; k < ext.length; k++) { if (!ext[k].high) { lows.push(ext[k].h); break; } }
+    if (!lows.length) return null;
+    var low = lows.reduce(function (x, y) { return x + y; }, 0) / lows.length;
+    return Math.max(20, Math.min(120, Math.round(100 * (ext[i].h - low) / 6.3)));
+  }
+
+  function svgEl(name, attrs, text) {
+    var e = document.createElementNS(NS, name), k;
+    for (k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function renderTide(now) {
+    var nowMs = now.getTime(), HOUR = 3600000;
+    var w0 = nowMs - 4 * HOUR, w1 = nowMs + 20 * HOUR;
+    var ext = tideExtremes(w0 - 16 * HOUR, w1 + 16 * HOUR);
+    var hNow = tideAt(nowMs), rising = tideAt(nowMs + 600000) > hNow;
+    var i;
+
+    $('tide-h').textContent = dec(hNow, 1) + ' m';
+    // time to next extreme
+    var next = null, nextHigh = null, nextLow = null;
+    for (i = 0; i < ext.length; i++) {
+      if (ext[i].t > nowMs) {
+        if (!next) next = ext[i];
+        if (ext[i].high && !nextHigh) nextHigh = i;
+        if (!ext[i].high && nextLow == null) nextLow = i;
+      }
+    }
+    var mins = next ? Math.round((next.t - nowMs) / 60000) : 0;
+    $('tide-trend').textContent = (rising ? '↑ Montante' : '↓ Descendante') +
+      (next ? ' · ' + (next.high ? 'pleine' : 'basse') + ' mer dans ' + (mins >= 60 ? Math.floor(mins / 60) + ' h ' + pad(mins % 60) : mins + ' min') : '');
+
+    function block(idx, label) {
+      if (idx == null) return '<div></div>';
+      var e = ext[idx], d = new Date(e.t), cf = e.high ? coefFor(ext, idx) : null;
+      return '<div><div class="tn-k">' + label + '</div><div class="tn-v">' + hh(d) +
+        '<small>' + dec(e.h, 2) + ' m</small>' + (cf ? '<span class="coef">coef ' + cf + '</span>' : '') + '</div></div>';
+    }
+    $('tide-next').innerHTML = block(nextHigh, 'Prochaine pleine mer') + block(nextLow, 'Prochaine basse mer');
+
+    // curve
+    var svg = $('tide-svg'), W = 600, Ht = 160, top = 26, bot = 136, HMAX = 8;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    function X(t) { return (t - w0) / (w1 - w0) * W; }
+    function Y(h) { return bot - (h / HMAX) * (bot - top); }
+    var d = '', t, pts = [];
+    for (t = w0; t <= w1 + 1; t += 10 * 60000) pts.push([X(t), Y(tideAt(t))]);
+    for (i = 0; i < pts.length; i++) d += (i ? 'L' : 'M') + pts[i][0].toFixed(1) + ' ' + pts[i][1].toFixed(1);
+    svg.appendChild(svgEl('path', { 'class': 't-area', d: d + 'L' + W + ' ' + bot + 'L0 ' + bot + 'Z' }));
+    svg.appendChild(svgEl('line', { 'class': 't-base', x1: 0, y1: bot, x2: W, y2: bot }));
+    svg.appendChild(svgEl('path', { 'class': 't-line', d: d }));
+    // hour labels every 3 h
+    var first = new Date(w0); first.setMinutes(0, 0, 0);
+    for (t = first.getTime() + HOUR; t < w1; t += HOUR) {
+      var hr = new Date(t).getHours();
+      if (hr % 3 === 0) {
+        var x = X(t);
+        if (x > 12 && x < W - 12) svg.appendChild(svgEl('text', { 'class': 't-axis', x: x, y: Ht - 6, 'text-anchor': 'middle' }, hr + 'h'));
+      }
+    }
+    // extremes
+    for (i = 0; i < ext.length; i++) {
+      var e = ext[i];
+      if (e.t < w0 || e.t > w1) continue;
+      var ex = X(e.t), ey = Y(e.h), anchor = ex < 30 ? 'start' : (ex > W - 30 ? 'end' : 'middle');
+      svg.appendChild(svgEl('circle', { 'class': 't-ext', cx: ex, cy: ey, r: 3.5 }));
+      svg.appendChild(svgEl('text', { 'class': 't-lab', x: ex, y: e.high ? ey - 10 : ey + 20, 'text-anchor': anchor }, hh(new Date(e.t))));
+    }
+    // now
+    var nx = X(nowMs), ny = Y(hNow);
+    svg.appendChild(svgEl('line', { 'class': 't-now', x1: nx, y1: top - 14, x2: nx, y2: bot }));
+    svg.appendChild(svgEl('circle', { 'class': 't-dot', cx: nx, cy: ny, r: 6 }));
+  }
+
+  /* ---------- Keep the screen awake where supported (iPadOS 16.4+) ---------- */
+  function wake() {
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(function () {}); } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { wake(); lastMinute = -1; tickClock(); } });
+
+  /* ---------- Start ---------- */
+  tickClock();
+  setInterval(tickClock, 1000);
+  loadWeather();
+  wake();
+  // reload twice a day to pick up dashboard updates and clear any stuck state
+  setTimeout(function () { location.reload(); }, 12 * 3600 * 1000);
+})();
+</script>
+</body>
+</html>
