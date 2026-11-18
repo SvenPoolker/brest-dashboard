@@ -99,8 +99,7 @@ body {
 .num { font-variant-numeric: tabular-nums; }
 
 /* ---- Clock ---- */
-.clock-tile { grid-row: 1 / span 2; }
-.clock-face { flex: 1 1 auto; min-height: 0; position: relative; margin: 6px 0 4px; }
+.clock-face { flex: 1 1 auto; min-height: 0; position: relative; margin: 4px 0 6px; }
 .clock-face svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 .face-bg { fill: var(--bg); }
 .tick { stroke: var(--muted); stroke-width: 1.2; stroke-linecap: round; opacity: 0.55; }
@@ -113,14 +112,14 @@ body {
 .hub-in { fill: var(--tile); }
 .digital {
   flex: none; text-align: center;
-  font-family: var(--display); font-weight: 700; font-size: 84px; line-height: 1;
+  font-family: var(--display); font-weight: 700; font-size: 54px; line-height: 1;
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
 }
-.date { flex: none; text-align: center; font-size: 20px; font-weight: 600; margin-top: 6px; }
+.date { flex: none; text-align: center; font-size: 18px; font-weight: 600; margin-top: 4px; }
 .date .weekday { color: var(--accent); }
 .sunrow {
   flex: none; display: flex; justify-content: center; align-items: center;
-  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
   font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .sunrow span { margin: 0 9px; white-space: nowrap; }
@@ -166,16 +165,26 @@ body {
 .tn-v small { font-size: 14px; color: var(--muted); font-weight: 600; margin-left: 6px; }
 .coef { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 9px; font-size: 13px; font-weight: 700; margin-left: 6px; vertical-align: 2px; }
 
+/* ---- Tram ---- */
+.line-badge { display: inline-block; color: #fff; border-radius: 6px; padding: 0 7px; margin-right: 7px; letter-spacing: 0; }
+.tram { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; justify-content: space-around; }
+.dir { padding: 4px 0; }
+.dir + .dir { border-top: 1px solid var(--line); padding-top: 8px; }
+.dir-label { font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+.dep { display: flex; align-items: baseline; padding: 2px 0; }
+.dep .min { font-family: var(--display); font-weight: 700; font-size: 25px; width: 92px; flex: none; font-variant-numeric: tabular-nums; }
+.dep.next .min { color: var(--accent); }
+.dep .dest { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dep .at { flex: none; font-size: 14px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 8px; }
+
 .muted-msg { color: var(--muted); font-size: 16px; margin: auto 0; text-align: center; }
 
 /* Narrow screens (phone): stack the tiles and let the page scroll */
 @media (max-width: 720px) {
   body { overflow: auto; }
   .board { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
-  .clock-tile { grid-row: auto; }
-  .clock-face { height: 260px; flex: none; }
+  .clock-face { height: 240px; flex: none; }
   .tide-curve { height: 150px; flex: none; }
-  .digital { font-size: 52px; }
   .wx-temp { font-size: 60px; }
   .wx-icon { width: 72px; height: 72px; }
   .hour:nth-child(n+6) { display: none; }
@@ -209,6 +218,11 @@ body {
     <div id="wx-body" style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0">
       <p class="muted-msg">Chargement de la météo…</p>
     </div>
+  </section>
+
+  <section class="tile" aria-label="Tram">
+    <div class="tile-head"><span class="name"><span class="line-badge" style="background:#de007e">A</span>Tram</span><span class="aside">Jean Jaurès · horaires prévus</span></div>
+    <div class="tram" id="tram-body"><p class="muted-msg">Chargement des horaires…</p></div>
   </section>
 
   <section class="tile" aria-label="Marées">
@@ -274,7 +288,56 @@ body {
         '</span> ' + now.getDate() + (now.getDate() === 1 ? 'er' : '') + ' ' + MONTHS[now.getMonth()];
       applyNight(now);
       renderTide(now);
+      renderTram(now);
     }
+  }
+
+  /* ---------- Tram (Bibus timetable, refreshed nightly into bibus.json) ---------- */
+  var bibus = null;
+  function loadBibus() {
+    fetch('bibus.json?t=' + Date.now()).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) { bibus = d; renderTram(new Date()); })
+      .catch(function () { if (!bibus) $('tram-body').innerHTML = '<p class="muted-msg">Horaires indisponibles pour le moment.</p>'; });
+  }
+  function dayKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function renderTram(now) {
+    if (!bibus) return;
+    var nowMs = now.getTime(), deps = [], k, i, rows, base, dirs = {}, r;
+    for (k = -1; k <= 1; k++) {
+      base = new Date(now.getFullYear(), now.getMonth(), now.getDate() + k);
+      rows = bibus.days[dayKey(base)] || [];
+      for (i = 0; i < rows.length; i++) {
+        r = rows[i];
+        var t = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, r[0]).getTime();
+        if (t >= nowMs - 30000 && t < nowMs + 6 * 3600000) deps.push({ t: t, route: bibus.routes[r[1]], dest: bibus.headsigns[r[2]], dir: r[3] });
+      }
+    }
+    deps.sort(function (a, b) { return a.t - b.t; });
+    // direction labels from every destination seen in that direction
+    var labels = {};
+    for (k in bibus.days) {
+      rows = bibus.days[k];
+      for (i = 0; i < rows.length; i++) {
+        labels[rows[i][3]] = labels[rows[i][3]] || {};
+        labels[rows[i][3]][bibus.headsigns[rows[i][2]]] = 1;
+      }
+    }
+    var html = '', order = [1, 0], j;
+    for (j = 0; j < order.length; j++) {
+      var dir = order[j], list = deps.filter(function (x) { return x.dir === dir; }).slice(0, 3);
+      if (!labels[dir]) continue;
+      html += '<div class="dir"><div class="dir-label">Vers ' + Object.keys(labels[dir]).sort().join(' / ') + '</div>';
+      if (!list.length) html += '<div class="dep"><span class="dest" style="color:var(--muted)">Pas de tram dans les prochaines heures</span></div>';
+      for (i = 0; i < list.length; i++) {
+        var m = Math.round((list[i].t - nowMs) / 60000), when = new Date(list[i].t);
+        html += '<div class="dep' + (i === 0 ? ' next' : '') + '"><span class="min">' + (m <= 0 ? 'à quai' : (m < 60 ? m + ' min' : hh(when))) + '</span>' +
+          '<span class="dest">' + list[i].dest + '</span><span class="at">' + (m < 60 ? hh(when) : '') + '</span></div>';
+      }
+      html += '</div>';
+    }
+    $('tram-body').innerHTML = html || '<p class="muted-msg">Horaires indisponibles pour le moment.</p>';
   }
 
   /* ---------- Weather icons ---------- */
@@ -542,6 +605,8 @@ body {
   tickClock();
   setInterval(tickClock, 1000);
   loadWeather();
+  loadBibus();
+  setInterval(loadBibus, 6 * 3600 * 1000);
   wake();
   // reload twice a day to pick up dashboard updates and clear any stuck state
   setTimeout(function () { location.reload(); }, 12 * 3600 * 1000);
